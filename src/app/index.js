@@ -1,16 +1,22 @@
-import {core} from 'famous';
-import {View} from '../shared/View';
+import {core, transitions} from 'famous';
+import {View} from '../base-views/View';
+import UI from '../utils/UI';
 
-const Context = core.Context;
+const Curves   = transitions.Curves;
+const Famous   = core.Famous;
 
 class App extends View {
+    constructor(options) {
+        super(options);
+    }
+
     render() {
         this.el.property('background', 'yellow');
     }
 }
 
-const root = new core.Context('body');
-const app = new App({
+const root = core.Famous.createContext('body');
+window.app = new App({
     node: root.addChild(),
     model: ""
 });

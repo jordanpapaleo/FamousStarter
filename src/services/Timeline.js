@@ -1,21 +1,36 @@
-import Easing from 'famous-transitions/src/Easing';
-import Famous from 'famous-core/src/Famous';
-import Size from 'famous-components/src/Size';
-import Transitionable from 'famous-transitions/src/Transitionable';
+import {core, domRenderables, components, transitions} from 'famous';
 
-var easingCurveLinear = Easing.getCurve('linear');
+const Famous          = core.Famous;
+const Size            = components.Size;
+const Transitionable  = transitions.Transitionable;
+const Curves          = transitions.Curves;
+
+const easingCurveLinear = Curves.linear;
 
 export class Timeline {
     constructor(options) {
         this.componentSet = [];
         this.timescale = options.timescale || 1;
         this.currentTime = new Transitionable(0);
+        this.callbacks = [];
+        this.direction;
+
         //for now update on all ticks until clock gets fixed
         Famous.getClock().update(this);
     }
 
     registerComponent(animationData) {
         this.componentSet.push(animationData);
+    }
+
+    /**
+     * @param callbackData object
+     * { time: 1000, direction: 1 || 0, fn: function() { } }
+     */
+
+    registerCallback(callbackData) {
+        callbackData.direction = callbackData.direction || 1; //what direction to trigger this callback.
+        this.callbacks.push(callbackData);
     }
 
     /**
@@ -53,6 +68,7 @@ export class Timeline {
     }
 
     set(time, transition, callback) {
+        this.direction = time > this.currentTime.get() ? 1 : -1;
         //comment out no longer updates and stuff for now, race condition in clock.
         if (transition) {
             // Famous.getClock().update(this);
@@ -77,11 +93,35 @@ export class Timeline {
         if (this.inTransition) {
             var res = [];
             time = this.currentTime.get() * this.timescale;
-            for (var i = 0; i < this.componentSet.length; i++) {
+
+            for(var i=0; i<this.callbacks.length; i++) {
+                if(this.direction > 0 && this.callbacks[i].direction > 0) {
+                    //forward
+                    if(time >= this.callbacks[i].time) {
+                        this.callbacks[i].fn();
+                        this.callbacks[i].direction = -1; //set to backwards
+                    }
+                } else if(this.direction < 0 && this.callbacks[i].direction < 0) {
+                    if(time <= this.callbacks[i].time) {
+                        this.callbacks[i].fn();
+                        this.callbacks[i].direction = 1; //set to forwards
+                    }
+                }
+            }
+
+            for(var i = 0; i < this.componentSet.length; i++) {
                 var animData = this.componentSet[i];
                 for (var j = 0; j < animData.path.length; j++) {
-                    var currStep = animData.path[j];
-                    var nextStep = animData.path[j + 1];
+                    var currStep, nextStep;
+
+                    //forward
+                    if(this.direction) {
+                        currStep = animData.path[j];
+                        nextStep = animData.path[j + 1];
+                    } else {
+                        currStep = animData.path[j + 1];
+                        nextStep = animData.path[j];
+                    }
 
                     //currently mid path, calculate and apply.
                     if (nextStep && currStep[0] <= time && nextStep[0] >= time) {

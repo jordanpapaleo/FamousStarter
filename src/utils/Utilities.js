@@ -1,15 +1,23 @@
 /*
  extends one object to another
  */
-export function extend (base, addon) {
+
+const Utilities = {};
+
+Utilities.extend =  function(base, addon) {
     var result = {};
-    for(var key in base) {
-        result[key] = base[key];
+
+    for(var baseKey in base) {
+        result[baseKey] = base[baseKey];
     }
-    for(var key in addon) {
-        if(!result[key]) {
-            result[key] = addon[key];
+
+    for(var addonKey in addon) {
+        if(!result[addonKey]) {
+            result[addonKey] = addon[addonKey];
         }
     }
+
     return result;
-}
+};
+
+export default Utilities;
